@@ -1,13 +1,26 @@
+/*	Author: Dana Maloney
+	For Operating Systems FA24 */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
 
-#define int MAX_SIZE (30 * 1024); // maximum memory allocation, in bytes
+/* Constant/datatype defs below vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv */
 
-/*	Author: Dana Maloney
-	For Operating Systems FA24 */
+const int MAX_SIZE = 30*1024; // maximum memory allocation, in bytes
+const int NUM_BLOCKS = 30;
 
-void *dummy_function(void *arg){
+typedef struct MemoryBlock { // TODO segment memory into MemoryBlock segments.
+	void *start;
+	// end = start + block_size
+	size_t size;
+	int is_free;
+	struct MemoryBlock *next; // next block if needed.
+} MemoryBlock;
+
+/* Function defs below  vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv */
+
+void *user_thread(void *arg){
 	int num = *(int *)arg; // Cast and dereference the argument
 	printf("Thread %d is running.\n", num);
 	free(arg); // Free the dynamically allocated memory
@@ -20,10 +33,15 @@ void *memory_management(void *arg){
 	
 	// function body: Allocate memory (in kilobytes) based on max_size arg.
 	void *sys_mem = malloc(MAX_SIZE);
-	printf("Allocated %d bytes in memory.\n", num_kb * 1024);
+	
+	for(int blocks = 0; blocks < NUM_BLOCKS; blocks++){
+		//make memory blocks
+	}
+	printf("Allocating %d bytes in memory...\n", MAX_SIZE);
 	if (!sys_mem){
 		perror("Memory Allocation failed.");
 	}
+	int block_size = MAX_SIZE / NUM_BLOCKS;
 	
 	free(arg); // Free the dynamically allocated memory
 	free(sys_mem); // free fixed allocated memory.
@@ -49,7 +67,7 @@ void create_threads(int n) {
         
         *arg = i; // Assign the thread index to the argument
         
-        if (pthread_create(&threads[i], NULL, dummy_function, arg) != 0) {
+        if (pthread_create(&threads[i], NULL, user_thread, arg) != 0) {
             perror("Failed to create User thread.");
             free(arg);
             exit(EXIT_FAILURE);
