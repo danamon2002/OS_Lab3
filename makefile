@@ -1,2 +1,2 @@
-Lab_3_P1: Lab_3_P1.c
-	gcc -o Lab_3_P1 Lab_3_P1.c
+Lab_3: Lab_3.c
+	gcc -o Lab_3 Lab_3.c
