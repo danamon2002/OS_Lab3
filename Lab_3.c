@@ -6,16 +6,6 @@
 #include <pthread.h>
 #include "MMS.h"
 
-/* Constant/datatype defs below vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv */
-
-typedef struct MemoryBlock { // TODO segment memory into MemoryBlock segments.
-	void *start;
-	// end = start + block_size
-	size_t size;
-	int is_free;
-	struct MemoryBlock *next; // next block if needed.
-} MemoryBlock;
-
 /* Function defs below  vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv */
 
 void *user_thread(void *arg){
