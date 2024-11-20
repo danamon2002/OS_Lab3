@@ -9,21 +9,22 @@
 
 struct DataBlock {
 	int id;
-	int is_empty;
-	void *start;
-	void *end;
-}
+	int in_use;
+	void *blockStart;
+	void *blockEnd;
+} DataBlock;
 
 //Single threaded memory manager test.
 //Dana Maloney
 
 void *start = NULL;
 void *end = NULL;
+
 struct DataBlock memoryTable[MAX_BLOCKS]; // array of data blocks.
 
 int block_size(struct DataBlock *block){
 /* Calculates size of a DataBlock. */
-	return (char *)block->end - (char *)block->start;
+	return (char *)block->blockEnd - (char *)block->blockStart;
 }
 
 void initialize_memory(){
@@ -35,33 +36,23 @@ void initialize_memory(){
 }
 
 void *first_fit(int size, int id){
-
-	void *blockStart = start;
-	void *blockEnd = blockStart;
-
-	//check if chunk is power of 2: Will happen if only 1 bit is set.
-	if(size > 0 && (size & (size - 1)) == 0){
+	/* First fit block placement function. */
+	
+	if(size > 0 && (size & (size - 1)) == 0){ //check if chunk is power of 2: Will happen if only 1 bit is set.
 		printf("Number is power of 2\n");
-		//look for first available block.
-		for(int i = 0; i < MAX_BLOCKS; i++){
-			printf("Current Block: %d\n", memoryTable[0][i]);
-			if (memoryTable[0][i] == 0){ // check for open block
-				blockStart = (void *)((char *)blockStart + size); // move blockStart to the start of the next block.
-				if (blockStart > memoryTable[1][i]) {
-				
-				}
-				memoryTable[0][i] = id;
-				memoryTable[1][i] = size;
-				if (((void *)((char *)blockStart + size ) < end){ // make sure that there's room for the block.
-					print("Yippeeeee!!\n");
-				}
-				printf("Wrote block for thread %d of size %d in block %d\n", id, size, i);
-				return 
+
+		for(int i = 0; i < MAX_BLOCKS; i++){ //look for first available block.
+			printf("Current Block: %d\n", i);
+			if (memoryTable[i].in_use == 0){ // check for open block
+				printf("OPEN BLOCK AT INDEX %d\n", i);
+				//TODO run checks for if there is enough space for block.
+				return NULL;
 			} else {
-				blockStart = (void *)((char *)blockStart + size); 
+				printf("Block %d is taken.\n", i);
 			}
 		}
-		//put memory in.
+		//if you get here, it means you went through all the blocks and there was no room.
+		return NULL;
 	} else {
 		printf("Number is not power of 2\n");
 		return NULL;
