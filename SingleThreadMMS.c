@@ -56,29 +56,28 @@ void initialize_memory(){
 void *block_start(int index){
 	/* finds start of current block. */
 	
-	printf("\n!!!!!!!!!!!Finding start for block at index %d !!!!!!!!!!!!!\n", index);
-	
+	//printf("\n!!!!!!!!!!!Finding start for block at index %d !!!!!!!!!!!!!\n", index);
 	void *result = NULL;
 	
 	for(int i = index; i >= 0; i--){
 		if(i - 1 < 0){
 			result = start;
-			printf("Result is start.\n");
+			//printf("Result is start.\n");
 			break;
 		} else { // if you're not in the first block, look at the end of the block before you.
 			if(memoryTable[i - 1].in_use != 0){
-				printf("Block %d is in use.\n", i - 1);
+				//printf("Block %d is in use.\n", i - 1);
 				result = memoryTable[i - 1].block_end + 1;
-				printf("i = %d, result = %lu\n", i, result);
+				//printf("i = %d, result = %lu\n", i, result);
 				break;
 			} else {
-				printf("Block %d isn't in use.\n", i - 1);
+				//printf("Block %d isn't in use.\n", i - 1);
 			}
 		}
 	}
 	
-	printf("Block %d's start address is %lu\n", index, (uintptr_t)result);
-	printf("Start is equal to %lu\n\n", (uintptr_t)start);
+	//printf("Block %d's start address is %lu\n", index, (uintptr_t)result);
+	//printf("Start is equal to %lu\n\n", (uintptr_t)start);
 	return result;
 }
 
@@ -105,7 +104,7 @@ void *block_max_end(int index){
 }
 
 uintptr_t available_space(int index){
-/* return, in bytes, the amount of space available at an index. */
+	/* return, in bytes, the amount of space available at an index. */
 
 	void *space_start = start;
 	void *space_end = end;
@@ -114,7 +113,7 @@ uintptr_t available_space(int index){
 	space_start = block_start(index);
 
 	uintptr_t space = (uintptr_t)space_end - (uintptr_t)space_start;
-	printf("%lu - %lu = %lu\n", (uintptr_t)space_end, (uintptr_t)space_start, space);
+	//printf("%lu - %lu = %lu\n", (uintptr_t)space_end, (uintptr_t)space_start, space);
 	return space;
 }
 
@@ -122,8 +121,7 @@ void *first_fit(int size, int id){
 	/* First fit block placement function. */
 	
 	if(size > 0 && (size & (size - 1)) == 0){ //check if chunk is power of 2: Will happen if only 1 bit is set.
-		printf("Number is power of 2\n");
-
+		//printf("Number is power of 2\n");
 		for(int i = 0; i < MAX_BLOCKS; i++){ //look for first available block.
 			printf("Current Block: %d\n", i);
 			
@@ -138,18 +136,32 @@ void *first_fit(int size, int id){
 					memoryTable[i].in_use = 1;
 					memoryTable[i].block_start = block_start(i);
 					memoryTable[i].block_end = block_start(i) + size;
+					return NULL; // TODO return success
+				} else {
+					printf("No room for block of size %d: Only <=%lu\n", size, available_space(i));
 				}
-				return NULL; // TODO return success
 			} else {
 				printf("Block %d is taken.\n", i);
 			}
 		}
-		//if you get here, it means you went through all the blocks and there was no room.
-		printf("No room.\n");
 		return NULL;
 	} else {
-		printf("Number is not power of 2\n");
+		printf("Requested %d bytes is not power of 2\n", size);
 		return NULL;
+	}
+}
+
+void free_block(int id){
+	/* free up previously allocated block with matching id. */
+	for(int i = 0; i < MAX_BLOCKS; i++){
+		if (memoryTable[i].id == id){
+			printf("Freeing block %d with ID %d\n", i, memoryTable[i].id);
+			memoryTable[i].id = 0;
+			memoryTable[i].in_use = 0;
+			memoryTable[i].block_start = NULL;
+			memoryTable[i].block_end = NULL;
+			//free(&memoryTable[i]);
+		}
 	}
 }
 
@@ -165,8 +177,11 @@ int main(){
 	initialize_memory();
 	first_fit(4, 1);
 	first_fit(1024, 2);
-	first_fit(64, 2);
-	first_fit(19, 1);
+	first_fit(64, 3);
+	first_fit(19, 4);
+	free_block(2);
+	first_fit(256, 5);
+	first_fit(32768, 6);
 	for(int i = 0; i < MAX_BLOCKS; i++){
 		print_data_block(&memoryTable[i]);
 	}

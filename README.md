@@ -1,5 +1,10 @@
 # OS_Lab3
 EECE.4811 Lab 3
 
-I was sick all week w/ some awful respiratory disease and fell behind on this assignment:
-Begging for some leniency/understanding. I'll be at office hours Mon/Tues to make sure I get this done.
+In this project's current state, a single-threaded memory manager can be demo'd by
+doing the following in a Linux terminal.
+
+1.) Run the makefile with the command `make`.
+2.) Run the program with `./SingleThreadMMS`.
+
+The program runs through several test cases to showcase functionality.
