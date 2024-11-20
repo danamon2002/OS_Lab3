@@ -1,62 +1,91 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <pthread.h>
-#include <stdbool.h>
 #include "MMS.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <pthread.h>
+#include <string.h>
 
-/* Constant/datatype defs below vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv */
+// Global variables
+static void *memory_pool;
+static MemoryBlock *block_list;
+static pthread_mutex_t memory_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t queue_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t queue_cond = PTHREAD_COND_INITIALIZER;
 
-const int MAX_SIZE = 30*1024; // maximum memory allocation, in bytes
-const int NUM_BLOCKS = 10;
-
-typedef struct MemoryBlock { // TODO segment memory into MemoryBlock segments.
-	void *start;
-	// end = start + block_size
-	size_t size;
-	bool is_free;
-	struct MemoryBlock *next; // next block if needed.
-} MemoryBlock;
-
-/* Function defs below */
-
-void *memory_management(void *arg){
-	int num = *(int *)arg; // Cast and dereference the argument
-	printf("Memory manager running on thread %d.\n", num);
-	
-	// function body: Allocate memory (in kilobytes) based on max_size arg.
-	//void *sys_mem = malloc(MAX_SIZE);
-	
-	MemoryBlock *blocks[NUM_BLOCKS]; // make array of blocks.
-	int block_size = MAX_SIZE / NUM_BLOCKS; // TODO delete?
-	
-	for (int block = 0; block < NUM_BLOCKS; block++) {
-		blocks[block] = (MemoryBlock *)malloc(sizeof(MemoryBlock));
-		if (blocks[block] == NULL) {
-		    fprintf(stderr, "Error: Failed to allocate memory for block %d\n", block);
-		    return; // Exit on allocation failure
-		}
-
-		// Allocate memory for the block's data
-		blocks[block]->start = malloc(MAX_SIZE / NUM_BLOCKS);
-		if (blocks[block]->start == NULL) {
-		    fprintf(stderr, "Error: Failed to allocate memory for block %d's data\n", block);
-		    free(blocks[block]); // Free the MemoryBlock itself
-		    return; // Exit on allocation failure
-		}
-
-		// Initialize the rest of the fields
-		blocks[block]->size = MAX_SIZE / NUM_BLOCKS;
-		blocks[block]->is_free = true;
-		blocks[block]->next = NULL;
-
-		printf("Allocated block %d: Size = %zu bytes\n", block, blocks[block]->size);
-	}
-	
-	free(arg); // Free the dynamically allocated memory
-	 // Free the blocks
-    for (int block = 0; block < NUM_BLOCKS; block++) {
-        free(blocks[block]->start); // Free the memory allocated for the block's data
-        free(blocks[block]);        // Free the MemoryBlock itself
+// Initialize memory pool
+void initialize_memory() {
+    memory_pool = malloc(MAX_SIZE);
+    if (!memory_pool) {
+        fprintf(stderr, "Failed to allocate memory pool.\n");
+        exit(1);
     }
-	return;
+
+    // Create initial block list
+    block_list = malloc(sizeof(MemoryBlock));
+    block_list->start = memory_pool;
+    block_list->size = MAX_SIZE;
+    block_list->is_free = true;
+    block_list->next = NULL;
+}
+
+// Memory allocation function (First-fit example)
+void *memory_malloc(size_t size) {
+    pthread_mutex_lock(&memory_mutex);
+
+    MemoryBlock *current = block_list;
+    while (current) {
+        if (current->is_free && current->size >= size) {
+            current->is_free = false;
+            pthread_mutex_unlock(&memory_mutex);
+            return current->start;
+        }
+        current = current->next;
+    }
+
+    pthread_mutex_unlock(&memory_mutex);
+    return NULL; // No suitable block found
+}
+
+// Free memory function
+void memory_free(void *ptr) {
+    pthread_mutex_lock(&memory_mutex);
+
+    MemoryBlock *current = block_list;
+    while (current) {
+        if (current->start == ptr) {
+            current->is_free = true;
+            break;
+        }
+        current = current->next;
+    }
+
+    pthread_mutex_unlock(&memory_mutex);
+}
+
+// Request processing (to be run by MMS thread)
+void process_requests() {
+    MemoryRequest request;
+    while (true) {
+        pthread_mutex_lock(&queue_mutex);
+        while (!dequeue_request(&request)) {
+            pthread_cond_wait(&queue_cond, &queue_mutex);
+        }
+        pthread_mutex_unlock(&queue_mutex);
+
+        // Process request
+        void *allocated = memory_malloc(request.size);
+        if (allocated) {
+            printf("Thread %lu allocated %zu bytes.\n", request.tid, request.size);
+        } else {
+            printf("Thread %lu failed to allocate memory.\n", request.tid);
+        }
+    }
+}
+
+// Queue operations (implementation left to the user)
+void enqueue_request(MemoryRequest request) {
+    // Add request to queue (to be implemented)
+}
+bool dequeue_request(MemoryRequest *request) {
+    // Remove request from queue (to be implemented)
+    return false;
 }

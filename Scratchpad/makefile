@@ -3,9 +3,9 @@ CC = gcc
 # Flags
 CFLAGS = -Wall -Wextra -std=c99 -pthread
 
-TARGET = Lab_3
-SRCS = Lab_3.c MMS.c User.c
-HEADERS = MMS.h User.h
+TARGET = SingleThreadMMS
+SRCS = SingleThreadMMS.c
+# HEADERS = 
 
 # Make all sources into objects
 OBJS = $(SRCS:.c=.o)
