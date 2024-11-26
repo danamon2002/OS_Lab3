@@ -6,7 +6,7 @@
 #include <stdint.h>
 
 #define MAX_SIZE (30 * 1024) // 30MB
-#define MAX_BLOCKS 5 // Maximum number of blocks in memory.
+#define MAX_BLOCKS 10 // Maximum number of blocks in memory.
 
 struct DataBlock {
 	int id;
@@ -136,9 +136,10 @@ void *first_fit(int size, int id){
 					memoryTable[i].in_use = 1;
 					memoryTable[i].block_start = block_start(i);
 					memoryTable[i].block_end = block_start(i) + size;
-					return NULL; // TODO return success
+					return NULL; // TODO return success, space granted
 				} else {
 					printf("No room for block of size %d: Only <=%lu\n", size, available_space(i));
+					return NULL; // TODO return no space
 				}
 			} else {
 				printf("Block %d is taken.\n", i);
@@ -147,7 +148,7 @@ void *first_fit(int size, int id){
 		return NULL;
 	} else {
 		printf("Requested %d bytes is not power of 2\n", size);
-		return NULL;
+		return NULL; // return improper request
 	}
 }
 
@@ -171,17 +172,19 @@ void free_memory(){
 }
 
 int main(){
-	for(int i = 0; i < 10; i++){
-		break;
-	}
 	initialize_memory();
 	first_fit(4, 1);
 	first_fit(1024, 2);
 	first_fit(64, 3);
-	first_fit(19, 4);
-	free_block(2);
-	first_fit(256, 5);
-	first_fit(32768, 6);
+	first_fit(19, 4); // try block with size that isn't 2^n
+	free_block(2); // free up block
+	first_fit(256, 5); // should go into freed block.
+	first_fit(32768, 6); // try block too large to be placed.
+	for(int i = 7; i < 20; i++){
+		first_fit(256, i);
+	}
+
+	//print list of all blocks.
 	for(int i = 0; i < MAX_BLOCKS; i++){
 		print_data_block(&memoryTable[i]);
 	}
