@@ -1,9 +1,12 @@
 /*	Author: Dana Maloney
 	For Operating Systems FA24 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <pthread.h>
+#include<stdio.h>
+#include<stdlib.h>
+#include<unistd.h>
+#include<pthread.h>
+#include<semaphore.h>
+#include<signal.h>
 #include "MMS.h"
 
 /* Function defs below  vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv */
@@ -17,6 +20,7 @@ void *user_thread(void *arg){
 
 void create_threads(int n) {
 	/* Function to create n+1 threads. */
+
    	pthread_t *threads = malloc((n + 1) * sizeof(pthread_t)); // Array to store thread IDs
 	if (threads == NULL) {
 	        perror("Failed to allocate memory for threads");
@@ -41,7 +45,6 @@ void create_threads(int n) {
     }
     
     // Create Memory Management Thread that uses MMS fxn instead of user fxn.
-    //if (int *malloc(sizeof(int) == NULL){
     int *arg = malloc(sizeof(int)); // Allocate memory for the thread argument
     if (arg == NULL) {
     	perror("Failed to allocate memory for MMS argument");
@@ -50,7 +53,7 @@ void create_threads(int n) {
     
     *arg = n; // memory manager will run on last thread.
     
-    if( pthread_create(&threads[n], NULL, memory_management, arg) != 0) {
+    if( pthread_create(&threads[n], NULL, test_sequence, arg) != 0) {
     	perror("Failed to create MMS thread.");
     	free(arg);
     }

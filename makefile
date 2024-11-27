@@ -1,23 +1,48 @@
+# Compiler to use
 CC = gcc
 
-# Flags
-CFLAGS = -Wall -Wextra -std=c99 -pthread
+# Compiler flags
+CFLAGS = -Wall -Wextra -std=c99
 
-TARGET = SingleThreadMMS
-SRCS = SingleThreadMMS.c
-# HEADERS = 
+# Target executable name
+TARGET = Lab_3
 
-# Make all sources into objects
-OBJS = $(SRCS:.c=.o)
+# Source files
+SRCS = Lab_3.c MMS.c
 
-# Build target
-$(TARGET): $(OBJS)
-	$(CC) $(CFLAGS) $(OBJS) -o $(TARGET)
+# Header files (optional, for clarity)
+HEADERS = MMS.h
 
-# Compile source files into object files
-%.o: %.c $(HEADERS)
-	$(CC) $(CFLAGS) -c $< -o $@
+# Build the target
+$(TARGET): $(SRCS) $(HEADERS)
+	$(CC) $(CFLAGS) $(SRCS) -o $(TARGET)
 
-# Clean artifacts with 'make clean'
+# Clean up build artifacts
 clean:
-	rm -f $(TARGET) $(OBJS)
+	rm -f $(TARGET)
+
+# old makefile for single-thread:
+
+# CC = gcc
+#
+# # Flags
+# CFLAGS = -Wall -Wextra -std=c99 -pthread
+#
+# TARGET = MMS
+# SRCS = MMS.c
+# HEADERS = MMS.h
+#
+# # Make all sources into objects
+# OBJS = $(SRCS:.c=.o)
+#
+# # Build target
+# $(TARGET): $(OBJS)
+# 	$(CC) $(CFLAGS) $(OBJS) -o $(TARGET)
+#
+# # Compile source files into object files
+# %.o: %.c $(HEADERS)
+# 	$(CC) $(CFLAGS) -c $< -o $@
+#
+# # Clean artifacts with 'make clean'
+# clean:
+# 	rm -f $(TARGET) $(OBJS)

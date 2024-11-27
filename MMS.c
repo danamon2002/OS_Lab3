@@ -6,9 +6,18 @@
 #include <stdint.h>
 
 #define MAX_SIZE (30 * 1024) // 30MB
-#define MAX_BLOCKS 5 // Maximum number of blocks in memory.
+#define MAX_BLOCKS 10 // Maximum number of blocks in memory.
+#define MAX_JOBS 10   // Maximum number of jobs in buffer.
+
+struct QueuedBlock{
+	/* Use for user-thread-request interface. */
+    int id;
+    int requested_size;
+    int mms_result; // 0 = pass, 1 = no space, 2 = invalid size
+}QueuedBlock;
 
 struct DataBlock {
+	/* Used by the MMS. */
 	int id;
 	int in_use;
 	void *block_start;
@@ -117,7 +126,7 @@ uintptr_t available_space(int index){
 	return space;
 }
 
-void *first_fit(int size, int id){
+int *first_fit(int size, int id){
 	/* First fit block placement function. */
 	
 	if(size > 0 && (size & (size - 1)) == 0){ //check if chunk is power of 2: Will happen if only 1 bit is set.
@@ -130,15 +139,16 @@ void *first_fit(int size, int id){
 				
 				// Run checks for if there is enough space for block.
 				printf("Check space for block at index %d\n", i);
-				if (size <= available_space(i)){  // enough space
+				if ((uintptr_t)size <= available_space(i)){  // enough space
 					//put block at this index!
 					memoryTable[i].id = id;
 					memoryTable[i].in_use = 1;
 					memoryTable[i].block_start = block_start(i);
 					memoryTable[i].block_end = block_start(i) + size;
-					return NULL; // TODO return success
+					return 0; // TODO return success, space granted
 				} else {
 					printf("No room for block of size %d: Only <=%lu\n", size, available_space(i));
+					return 1; // TODO return no space
 				}
 			} else {
 				printf("Block %d is taken.\n", i);
@@ -147,7 +157,7 @@ void *first_fit(int size, int id){
 		return NULL;
 	} else {
 		printf("Requested %d bytes is not power of 2\n", size);
-		return NULL;
+		return 2; // return improper request
 	}
 }
 
@@ -170,21 +180,39 @@ void free_memory(){
 	free(start);
 }
 
-int main(){
-	for(int i = 0; i < 10; i++){
-		break;
-	}
-	initialize_memory();
+int test_sequence(){
+	/* Run a test once memory is initialized for all features. */
+
 	first_fit(4, 1);
 	first_fit(1024, 2);
 	first_fit(64, 3);
-	first_fit(19, 4);
-	free_block(2);
-	first_fit(256, 5);
-	first_fit(32768, 6);
+	first_fit(19, 4); // try block with size that isn't 2^n
+	free_block(2); // free up block
+	first_fit(256, 5); // should go into freed block.
+	first_fit(32768, 6); // try block too large to be placed.
+	for(int i = 7; i < 20; i++){
+		first_fit(256, i);
+	}
+
+	//print list of all blocks.
 	for(int i = 0; i < MAX_BLOCKS; i++){
 		print_data_block(&memoryTable[i]);
 	}
 	free_memory();
 	return 0;
+}
+
+void *run_mms(){
+	printf("MMS Running...\n");
+	initialize_memory();
+	//test_sequence();
+	while(1){ // TODO make this not run forever?
+		for(int i = 0; i < MAX_JOBS; i++){
+
+		}
+	}
+}
+
+int main() {
+	run_mms();
 }
