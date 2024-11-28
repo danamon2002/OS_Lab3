@@ -157,7 +157,7 @@ int *first_fit(int size, int id){
 		return NULL;
 	} else {
 		printf("Requested %d bytes is not power of 2\n", size);
-		return 2; // return improper request
+		return 2;
 	}
 }
 
@@ -205,13 +205,20 @@ int test_sequence(){
 void *run_mms(){
 	printf("MMS Running...\n");
 	initialize_memory();
-	test_sequence();
 	while(1){ // TODO make this not run forever?
-		for(int i = 0; i < MAX_JOBS; i++){
-			break;
-		}
+// 		for(int i = 0; i < MAX_JOBS; i++){
+// 			first_fit(256, i);
+// 		}
 		break;
 	}
+	sleep(6);
+	//print list of all blocks.
+	for(int i = 0; i < MAX_BLOCKS; i++){
+		print_data_block(&memoryTable[i]);
+	}
+	sleep(6);
+	free_memory();
+	return 0;
 }
 
 // int main() {

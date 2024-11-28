@@ -13,8 +13,21 @@
 
 void *user_thread(void *arg){
 	int num = *(int *)arg; // Cast and dereference the argument
-	printf("Thread %d is running.\n", num);
+	int id = pthread_self();
+    srand(id);
+    int sleepTime = rand() % 10 + 1; // add 1 so there's always *some* sleep time.
+    int power = rand() % 14;
+    int size = 2;
+    for(int i = 0; i < power; i++)
+        size *= 2;
+
+    sleep(1); // let the MMS thread start. TODO make thread put request in buffer.
+    first_fit(size, id);
+	printf("I am thread #%d going to sleep.\n", id);
+    sleep(sleepTime);
+    free_block(id);
 	free(arg); // Free the dynamically allocated memory
+    printf("I am thread #%d Waking Up.\n");
 	return NULL;
 }
 
@@ -76,6 +89,8 @@ int main(int argc, char *argv[]){
 		printf("Argument was %d\n", arg_1_int);
 		// call function to make n+1 threads.
 		create_threads(arg_1_int);
-		return arg_1_int;
+		for(int i = 0; i < MAX_BLOCKS; i++){
+            print_data_block(&memoryTable[i]);
+        }
 	}
 }
