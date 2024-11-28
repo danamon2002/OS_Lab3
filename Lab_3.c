@@ -53,7 +53,7 @@ void create_threads(int n) {
     
     *arg = n; // memory manager will run on last thread.
     
-    if( pthread_create(&threads[n], NULL, test_sequence, arg) != 0) {
+    if( pthread_create(&threads[n], NULL, run_mms, arg) != 0) {
     	perror("Failed to create MMS thread.");
     	free(arg);
     }

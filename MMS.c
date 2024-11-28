@@ -205,14 +205,15 @@ int test_sequence(){
 void *run_mms(){
 	printf("MMS Running...\n");
 	initialize_memory();
-	//test_sequence();
+	test_sequence();
 	while(1){ // TODO make this not run forever?
 		for(int i = 0; i < MAX_JOBS; i++){
-
+			break;
 		}
+		break;
 	}
 }
 
-int main() {
-	run_mms();
-}
+// int main() {
+// 	run_mms();
+// }
