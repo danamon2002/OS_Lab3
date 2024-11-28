@@ -20,4 +20,8 @@ $(TARGET): $(OBJS)
 
 # Clean artifacts with 'make clean'
 clean:
+<<<<<<< Updated upstream
 	rm -f $(TARGET) $(OBJS)
+=======
+	rm -f $(TARGET)
+>>>>>>> Stashed changes

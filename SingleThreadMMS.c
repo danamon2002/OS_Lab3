@@ -1,10 +1,8 @@
-//#include "MMS.h"
-#include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>
-#include <string.h>
-#include <stdint.h>
+#include "MMS.h"
 
+<<<<<<< Updated upstream:SingleThreadMMS.c
 #define MAX_SIZE (30 * 1024) // 30MB
 #define MAX_BLOCKS 10 // Maximum number of blocks in memory.
 
@@ -14,34 +12,44 @@ struct DataBlock {
 	void *block_start;
 	void *block_end;
 } DataBlock;
+=======
+void* mms_thread(void* arg) {
+    printf("Creating Thread: MMS\n");
+    //long* blocks = (long*)arg;
 
-//Single threaded memory manager test.
-//Dana Maloney
+    // Loops until all user-requested jobs are done
+    while (jobsDone < userNum) {
+        // Check `userBuffer` for job requests
+        for (int f = 0; f < BUFFER_SIZE; f++) {
+            // If request at index is greater than 0
+            if (userBuffer[f] > 0) {
+                // Lock mutex for safety
+                pthread_mutex_lock(&mutx);
 
-void *start = NULL;
-void *end = NULL;
+                // Check to see if requested block is taken
+                for (int g = 0; g < BUFFER_SIZE; g++) {
+                    if (userBuffer[f] == bp_buffer[g] && f != g) {
+                        // Free up memory by removing a job
+                        bp_buffer[g] = 0;
+>>>>>>> Stashed changes:MMS.c
 
-struct DataBlock memoryTable[MAX_BLOCKS]; // array of data blocks.
+                        // Allocate the requested memory block
+                        bp_buffer[f] = userBuffer[f];
+                    } else if (userBuffer[f] != bp_buffer[g] || f != g) {
+                        bp_buffer[f] = userBuffer[f];
+                    }
+                }
+                sem_post(&bin_sem);        // Increase semaphore
+                pthread_mutex_unlock(&mutx); // Unlock mutex
+            }
+        }
 
-
-void print_data_block(struct DataBlock *block) {
-    if (block == NULL) {
-        printf("Invalid DataBlock (NULL pointer).\n");
-        return;
+        // Reset `index_counter` when it reaches BUFFER_SIZE
+        if (index_counter >= BUFFER_SIZE) {
+            index_counter = 0;
+        }
     }
-
-    printf("DataBlock Information:\n");
-    printf("ID: %d\n", block->id);
-    printf("In Use: %s\n", block->in_use ? "Yes" : "No");
-    printf("Block Start Address: %p\n", block->block_start);
-    printf("Block End Address: %p\n", block->block_end);
-
-    // Calculate and print the size of the block
-    if (block->block_start != NULL && block->block_end != NULL) {
-        printf("Block Size: %ld bytes\n", (char *)block->block_end - (char *)block->block_start);
-    } else {
-        printf("Block Size: Unknown (start or end is NULL)\n");
-    }
+<<<<<<< Updated upstream:SingleThreadMMS.c
 }
 
 void initialize_memory(){
@@ -190,4 +198,7 @@ int main(){
 	}
 	free_memory();
 	return 0;
+=======
+    return NULL;
+>>>>>>> Stashed changes:MMS.c
 }
