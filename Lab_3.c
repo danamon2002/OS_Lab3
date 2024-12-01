@@ -9,12 +9,6 @@
 #include<signal.h>
 #include "MMS.h"
 
-// Define buffer
-typedef struct {
-    int size;
-    int id;
-} BufferItem;
-
 #define BUFFER_SIZE 10
 BufferItem buffer[BUFFER_SIZE]; // buffer for memory requests.
 int in = 0; // Index for the producer to insert items
@@ -40,23 +34,26 @@ void *user_thread(void *arg){
     for(int i = 0; i < power; i++)
         size *= 2;
 
-    sleep(1); // let the MMS thread start.
     // Make request item for buffer.
     BufferItem request_block;
     request_block.size = size;
     request_block.id = num; // TODO change to thread ID?
-    //secure buffer for puttinng item in.
+    //secure buffer for putting item in.
+    printf("USER ID# %d waiting for empty semaphore...\n", id);
     sem_wait(&empty);
+    printf("USER ID# %d waiting for mutex to unlock...\n", id);
     while( pthread_mutex_lock(&mutx)){ // TODO verify that this works: Should loop until mutex lock obtained
         //do nothing.
     }
     // make thread put request in buffer.
+    printf("USER ID# %d writing request.\n", id);
     buffer[in] = request_block;
     in = (in + 1) % BUFFER_SIZE;
     //release mutex.
     if (pthread_mutex_unlock(&mutx)){
         perror("Failed to release mutex from a consumer");
     }
+    sem_post(&full); // post new item available.
     // go eepy.
 	printf("I am thread #%d going to sleep.\n", id);
     sleep(sleepTime);
@@ -76,8 +73,22 @@ void run_threads(int n) {
 	        exit(EXIT_FAILURE);
     }
 
-    for (int i = 0; i < n; i++) {
+    // Create Memory Management Thread.
+    int *arg = malloc(sizeof(int)); // Allocate memory for the thread argumentfg
+    if (arg == NULL) {
+    	perror("Failed to allocate memory for MMS argument");
+    	exit(EXIT_FAILURE);
+    }
+
+    *arg = n; // memory manager will run on last thread.
+
+    if( pthread_create(&threads[n], NULL, run_mms, arg) != 0) {
+    	perror("Failed to create MMS thread.");
+    	free(arg);
+    }
+
     // Create user threads.
+    for (int i = 0; i < n; i++) {
         int *arg = malloc(sizeof(int)); // Allocate memory for the thread argument
         if (arg == NULL) {
             perror("Failed to allocate memory for UThread argument");
@@ -91,20 +102,6 @@ void run_threads(int n) {
             free(arg);
             exit(EXIT_FAILURE);
         }
-    }
-    
-    // Create Memory Management Thread that uses MMS fxn instead of user fxn.
-    int *arg = malloc(sizeof(int)); // Allocate memory for the thread argument
-    if (arg == NULL) {
-    	perror("Failed to allocate memory for MMS argument");
-    	exit(EXIT_FAILURE);
-    }
-    
-    *arg = n; // memory manager will run on last thread.
-    
-    if( pthread_create(&threads[n], NULL, run_mms, arg) != 0) {
-    	perror("Failed to create MMS thread.");
-    	free(arg);
     }
 
     // Wait for all threads to complete
@@ -123,26 +120,27 @@ int main(int argc, char *argv[]){
 	} else {
 		int arg_1_int = atoi(argv[1]);
 		printf("Argument was %d\n", arg_1_int);
+        //Init semaphores
+        sem_init(&empty, 0, BUFFER_SIZE); // `BUFFER_SIZE` slots are initially empty
+        sem_init(&full, 0, 0);            // Initially, no items in the buffer
         //Init mutex
         if(pthread_mutex_init(&mutx, NULL)) {
             puts("Error mutex initialization");
         }
 
-        // Lock/unlock functions:
-        // pthread_mutex_lock(&mutx);	// mutex lock before critical section
-        // pthread_mutex_unlock(&mutx);	// mutex unlock
 
 
 		// call function to make n+1 threads.
 		run_threads(arg_1_int);
 
-        //breakdown mutex.
+        //cleanup.
+        sem_destroy(&empty);
+        sem_destroy(&full);
         pthread_mutex_destroy(&mutx);	// destroy mutex
+        free_memory();
 
-        //print final state: If all threads are done, there should be NO memory blocks in use!
-        printf("FINAL STATE:\n");
-		for(int i = 0; i < MAX_BLOCKS; i++){
-            print_data_block(&memoryTable[i]);
-        }
 	}
+
+	return 0;
+
 }

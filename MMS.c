@@ -1,39 +1,23 @@
-//#include "MMS.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>
 #include <string.h>
 #include <stdint.h>
-
-#define MAX_SIZE (30 * 1024) // 30MB
-#define MAX_BLOCKS 10 // Maximum number of blocks in memory.
-#define MAX_JOBS 10   // Maximum number of jobs in buffer.
-
-struct QueuedBlock{
-	/* Use for user-thread-request interface. */
-    int id;
-    int requested_size;
-    int mms_result; // 0 = pass, 1 = no space, 2 = invalid size
-}QueuedBlock;
-
-struct DataBlock {
-	/* Used by the MMS. */
-	int id;
-	int in_use;
-	void *block_start;
-	void *block_end;
-} DataBlock;
+#include <unistd.h>
+#include <semaphore.h>
+#include <signal.h>
+#include "MMS.h"
 
 //Single threaded memory manager test.
 //Dana Maloney
 
 void *start = NULL;
 void *end = NULL;
+int buff_index = 0;
 
-struct DataBlock memoryTable[MAX_BLOCKS]; // array of data blocks.
+DataBlock memoryTable[MAX_BLOCKS]; // array of data blocks.
 
-
-void print_data_block(struct DataBlock *block) {
+void print_data_block(DataBlock *block) {
     if (block == NULL) {
         printf("Invalid DataBlock (NULL pointer).\n");
         return;
@@ -180,7 +164,7 @@ void free_memory(){
 	free(start);
 }
 
-int test_sequence(){
+void test_sequence(){
 	/* Run a test once memory is initialized for all features. */
 
 	first_fit(4, 1);
@@ -199,28 +183,28 @@ int test_sequence(){
 		print_data_block(&memoryTable[i]);
 	}
 	free_memory();
-	return 0;
+	return NULL;
 }
 
 void *run_mms(){
 	printf("MMS Running...\n");
 	initialize_memory();
-	while(1){ // TODO make this not run forever?
-// 		for(int i = 0; i < MAX_JOBS; i++){
-// 			first_fit(256, i);
-// 		}
-		break;
-	}
-	sleep(6);
-	//print list of all blocks.
-	for(int i = 0; i < MAX_BLOCKS; i++){
-		print_data_block(&memoryTable[i]);
-	}
-	sleep(6);
-	free_memory();
-	return 0;
-}
 
-// int main() {
-// 	run_mms();
-// }
+	while (1) { //FOREVER LOOP
+        sem_wait(&full);             // Wait if there are no items in the buffer
+        pthread_mutex_lock(&mutx);  // Aget buffer access
+
+        BufferItem item = buffer[buff_index];     // Remove an item from the buffer
+
+        pthread_mutex_unlock(&mutx); // Release the mutex
+        sem_post(&empty);             // Signal that a slot is now available
+
+        first_fit(item.size, item.id);
+		print_data_block(item.id);
+
+		buff_index = (buff_index + 1) % BUFFER_SIZE; // Move to the next slot (circular buffer)
+    }
+
+	free_memory();
+	return NULL;
+}
