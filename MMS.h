@@ -49,7 +49,6 @@ uintptr_t available_space(int index);
 int *first_fit(int size, int id);
 void free_block(int id);
 void free_memory();
-void test_sequence();
 void *run_mms();
 
 #endif

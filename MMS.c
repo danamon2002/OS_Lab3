@@ -23,17 +23,17 @@ void print_data_block(DataBlock *block) {
         return;
     }
 
-    printf("DataBlock Information:\n");
-    printf("ID: %d\n", block->id);
-    printf("In Use: %s\n", block->in_use ? "Yes" : "No");
-    printf("Block Start Address: %p\n", block->block_start);
-    printf("Block End Address: %p\n", block->block_end);
+    printf("\033[34mDataBlock Information:\033[0m\n");
+    printf("\033[34mID: %d\033[0m\n", block->id);
+    printf("\033[34mIn Use: %s\033[0m\n", block->in_use ? "Yes" : "No");
+    printf("\033[34mBlock Start Address: %p\033[0m\n", block->block_start);
+    printf("\033[34mBlock End Address: %p\033[0m\n", block->block_end);
 
     // Calculate and print the size of the block
     if (block->block_start != NULL && block->block_end != NULL) {
-        printf("Block Size: %ld bytes\n", (char *)block->block_end - (char *)block->block_start);
+        printf("\033[34mBlock Size: %ld bytes\033[0m\n", (char *)block->block_end - (char *)block->block_start);
     } else {
-        printf("Block Size: Unknown (start or end is NULL)\n");
+        printf("\033[34mBlock Size: Unknown (start or end is NULL)\033[0m\n");
     }
 }
 
@@ -164,28 +164,6 @@ void free_memory(){
 	free(start);
 }
 
-void test_sequence(){
-	/* Run a test once memory is initialized for all features. */
-
-	first_fit(4, 1);
-	first_fit(1024, 2);
-	first_fit(64, 3);
-	first_fit(19, 4); // try block with size that isn't 2^n
-	free_block(2); // free up block
-	first_fit(256, 5); // should go into freed block.
-	first_fit(32768, 6); // try block too large to be placed.
-	for(int i = 7; i < 20; i++){
-		first_fit(256, i);
-	}
-
-	//print list of all blocks.
-	for(int i = 0; i < MAX_BLOCKS; i++){
-		print_data_block(&memoryTable[i]);
-	}
-	free_memory();
-	return NULL;
-}
-
 void *run_mms(){
 	printf("MMS Running...\n");
 	initialize_memory();
@@ -195,14 +173,17 @@ void *run_mms(){
         pthread_mutex_lock(&mutx);  // Aget buffer access
 
         BufferItem item = buffer[buff_index];     // Remove an item from the buffer
+        printf("MMS taken from buffer: ID %d, Size %d\n", item.id, item.size);
+		first_fit(item.size, item.id);
 
         pthread_mutex_unlock(&mutx); // Release the mutex
         sem_post(&empty);             // Signal that a slot is now available
 
-        first_fit(item.size, item.id);
-		print_data_block(item.id);
-
 		buff_index = (buff_index + 1) % BUFFER_SIZE; // Move to the next slot (circular buffer)
+
+		for(int i = 0; i < MAX_BLOCKS; i++){
+			print_data_block(&memoryTable[i]);
+		}
     }
 
 	free_memory();

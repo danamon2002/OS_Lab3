@@ -28,39 +28,43 @@ void *user_thread(void *arg){
 	int num = *(int *)arg; // Cast and dereference the argument
 	int id = pthread_self();
     srand(id);
-    int sleepTime = rand() % 10 + 1; // add 1 so there's always *some* sleep time.
-    int power = rand() % 14;
-    int size = 2;
-    for(int i = 0; i < power; i++)
-        size *= 2;
 
-    // Make request item for buffer.
-    BufferItem request_block;
-    request_block.size = size;
-    request_block.id = num; // TODO change to thread ID?
-    //secure buffer for putting item in.
-    printf("USER ID# %d waiting for empty semaphore...\n", id);
-    sem_wait(&empty);
-    printf("USER ID# %d waiting for mutex to unlock...\n", id);
-    while( pthread_mutex_lock(&mutx)){ // TODO verify that this works: Should loop until mutex lock obtained
-        //do nothing.
+    // every user should make 3 requests total.
+    for(int requests = 0; requests < 3; requests++){
+        int sleepTime = rand() % 10 + 1; // add 1 so there's always *some* sleep time.
+        int power = rand() % 14;
+        int size = 2;
+        for(int i = 0; i < power; i++)
+            size *= 2;
+
+        // Make request item for buffer.
+        BufferItem request_block;
+        request_block.size = size;
+        request_block.id = id;
+        //secure buffer for putting item in.
+        printf("USER ID# %d waiting for empty semaphore...\n", id);
+        sem_wait(&empty);
+        printf("USER ID# %d waiting for mutex to unlock...\n", id);
+        while( pthread_mutex_lock(&mutx)){ // loop until mutex lock obtained
+            //do nothing.
+        }
+        // make thread put request in buffer.
+        printf("USER ID# %d writing request.\n", id);
+        buffer[in] = request_block;
+        in = (in + 1) % BUFFER_SIZE;
+        //release mutex.
+        if (pthread_mutex_unlock(&mutx)){
+            perror("Failed to release mutex from a consumer");
+        }
+        sem_post(&full); // post new item available.
+        // go eepy.
+        printf("I am thread #%d going to sleep.\n", id);
+        sleep(sleepTime);
+        //free up memory.
+        free_block(id);
+        free(arg); // Free the dynamically allocated memory
+        printf("I am thread #%d Waking Up.\n");
     }
-    // make thread put request in buffer.
-    printf("USER ID# %d writing request.\n", id);
-    buffer[in] = request_block;
-    in = (in + 1) % BUFFER_SIZE;
-    //release mutex.
-    if (pthread_mutex_unlock(&mutx)){
-        perror("Failed to release mutex from a consumer");
-    }
-    sem_post(&full); // post new item available.
-    // go eepy.
-	printf("I am thread #%d going to sleep.\n", id);
-    sleep(sleepTime);
-    //free up memory.
-    free_block(id);
-	free(arg); // Free the dynamically allocated memory
-    printf("I am thread #%d Waking Up.\n");
 	return NULL;
 }
 
