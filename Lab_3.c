@@ -20,12 +20,11 @@ pthread_mutex_t mutx; // Ensures mutual exclusion
 
 /* Function defs below  vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv */
 
-void *user_thread(void *arg){
+void *user_thread(){
     /* User thread:
      * Should place requests for memory into buffer.
      * Then, go to sleep.
      * Then, wake up and free memory.*/
-	int num = *(int *)arg; // Cast and dereference the argument
 	int id = pthread_self();
     srand(id);
 
@@ -34,6 +33,7 @@ void *user_thread(void *arg){
         int sleepTime = rand() % 10 + 1; // add 1 so there's always *some* sleep time.
         int power = rand() % 14;
         int size = 2;
+        int result = 0; // pass address to mms through buffer.
         for(int i = 0; i < power; i++)
             size *= 2;
 
@@ -41,10 +41,11 @@ void *user_thread(void *arg){
         BufferItem request_block;
         request_block.size = size;
         request_block.id = id;
+        request_block.result = &result;
         //secure buffer for putting item in.
-        printf("USER ID# %d waiting for empty semaphore...\n", id);
+        //printf("USER ID# %d waiting for empty semaphore...\n", id);
         sem_wait(&empty);
-        printf("USER ID# %d waiting for mutex to unlock...\n", id);
+        //printf("USER ID# %d waiting for mutex to unlock...\n", id);
         while( pthread_mutex_lock(&mutx)){ // loop until mutex lock obtained
             //do nothing.
         }
@@ -57,12 +58,30 @@ void *user_thread(void *arg){
             perror("Failed to release mutex from a consumer");
         }
         sem_post(&full); // post new item available.
+        while (!result){ // wait for result to update.
+            //do nothing.
+        }
+        //printf("Result was %d\n", result);
+        switch(result){
+            case 0: // success
+                break;
+//             case -1: // no space, try request again.
+//                 goto buffer_full_retry;
+//                 break;
+            case -2: // not a power of 2.
+                printf("Request wasn't a power of 2.\n");
+                goto skip_block;
+                break;
+            default:
+                //With more time, I'd like to make this handle receiving the address of the memory block.
+                break;
+        }
         // go eepy.
         printf("I am thread #%d going to sleep.\n", id);
         sleep(sleepTime);
         //free up memory.
         free_block(id);
-        free(arg); // Free the dynamically allocated memory
+        skip_block:
         printf("I am thread #%d Waking Up.\n");
     }
 	return NULL;
@@ -93,15 +112,8 @@ void run_threads(int n) {
 
     // Create user threads.
     for (int i = 0; i < n; i++) {
-        int *arg = malloc(sizeof(int)); // Allocate memory for the thread argument
-        if (arg == NULL) {
-            perror("Failed to allocate memory for UThread argument");
-            exit(EXIT_FAILURE);
-        }
         
-        *arg = i; // Assign the thread index to the argument
-        
-        if (pthread_create(&threads[i], NULL, user_thread, arg) != 0) {
+        if (pthread_create(&threads[i], NULL, user_thread, NULL) != 0) {
             perror("Failed to create User thread.");
             free(arg);
             exit(EXIT_FAILURE);
@@ -131,8 +143,6 @@ int main(int argc, char *argv[]){
         if(pthread_mutex_init(&mutx, NULL)) {
             puts("Error mutex initialization");
         }
-
-
 
 		// call function to make n+1 threads.
 		run_threads(arg_1_int);

@@ -110,7 +110,7 @@ uintptr_t available_space(int index){
 	return space;
 }
 
-int *first_fit(int size, int id){
+int first_fit(int size, int id){
 	/* First fit block placement function. */
 	
 	if(size > 0 && (size & (size - 1)) == 0){ //check if chunk is power of 2: Will happen if only 1 bit is set.
@@ -129,10 +129,10 @@ int *first_fit(int size, int id){
 					memoryTable[i].in_use = 1;
 					memoryTable[i].block_start = block_start(i);
 					memoryTable[i].block_end = block_start(i) + size;
-					return 0; // TODO return success, space granted
+					return 1; // return success, space granted
 				} else {
 					printf("No room for block of size %d: Only <=%lu\n", size, available_space(i));
-					return 1; // TODO return no space
+					return -1; // return no space
 				}
 			} else {
 				printf("Block %d is taken.\n", i);
@@ -141,8 +141,101 @@ int *first_fit(int size, int id){
 		return NULL;
 	} else {
 		printf("Requested %d bytes is not power of 2\n", size);
-		return 2;
+		return -2; // return invalid request
 	}
+}
+
+int best_fit(int size, int id) {
+    /* Best fit block placement function. */
+
+    if (size > 0 && (size & (size - 1)) == 0) { // Check if chunk is a power of 2
+        int best_index = -1;
+        uintptr_t min_diff = (uintptr_t)-1; // Start with maximum possible difference
+
+        // Iterate over all blocks to find the best fit
+        for (int i = 0; i < MAX_BLOCKS; i++) {
+            printf("Current Block: %d\n", i);
+
+            if (memoryTable[i].in_use == 0) { // Check for open block
+                printf("OPEN BLOCK AT INDEX %d\n", i);
+
+                // Check if there is enough space for the block
+                uintptr_t available = available_space(i);
+                if ((uintptr_t)size <= available) {
+                    uintptr_t diff = available - (uintptr_t)size;
+                    if (diff < min_diff) { // Check if this is a better fit
+                        min_diff = diff;
+                        best_index = i;
+                    }
+                }
+            } else {
+                printf("Block %d is taken.\n", i);
+            }
+        }
+
+        if (best_index != -1) { // A suitable block was found
+            printf("Best block found at index %d\n", best_index);
+
+            // Allocate the block
+            memoryTable[best_index].id = id;
+            memoryTable[best_index].in_use = 1;
+            memoryTable[best_index].block_start = block_start(best_index);
+            memoryTable[best_index].block_end = block_start(best_index) + size;
+            return 1; // Return success
+        } else {
+            printf("No suitable block found for size %d\n", size);
+            return -1; // Return no space
+        }
+    } else {
+        printf("Requested %d bytes is not power of 2\n", size);
+        return -2; // Return invalid request
+    }
+}
+
+int worst_fit(int size, int id) {
+    /* Worst fit block placement function. */
+
+    if (size > 0 && (size & (size - 1)) == 0) { // Check if chunk is a power of 2
+        int worst_index = -1;
+        uintptr_t max_space = 0; // Start with no space
+
+        // Iterate over all blocks to find the worst fit
+        for (int i = 0; i < MAX_BLOCKS; i++) {
+            printf("Current Block: %d\n", i);
+
+            if (memoryTable[i].in_use == 0) { // Check for open block
+                printf("OPEN BLOCK AT INDEX %d\n", i);
+
+                // Check if there is enough space for the block
+                uintptr_t available = available_space(i);
+                if ((uintptr_t)size <= available) {
+                    if (available > max_space) { // Check if this is a worse fit
+                        max_space = available;
+                        worst_index = i;
+                    }
+                }
+            } else {
+                printf("Block %d is taken.\n", i);
+            }
+        }
+
+        if (worst_index != -1) { // A suitable block was found
+            printf("Worst block found at index %d\n", worst_index);
+
+            // Allocate the block
+            memoryTable[worst_index].id = id;
+            memoryTable[worst_index].in_use = 1;
+            memoryTable[worst_index].block_start = block_start(worst_index);
+            memoryTable[worst_index].block_end = block_start(worst_index) + size;
+            return 1; // Return success
+        } else {
+            printf("No suitable block found for size %d\n", size);
+            return -1; // Return no space
+        }
+    } else {
+        printf("Requested %d bytes is not power of 2\n", size);
+        return -2; // Return invalid request
+    }
 }
 
 void free_block(int id){
@@ -174,7 +267,10 @@ void *run_mms(){
 
         BufferItem item = buffer[buff_index];     // Remove an item from the buffer
         printf("MMS taken from buffer: ID %d, Size %d\n", item.id, item.size);
-		first_fit(item.size, item.id);
+
+		//*item.result = first_fit(item.size, item.id); // send result back to producer.
+		*item.result = best_fit(item.size, item.id); // send result back to producer.
+
 
         pthread_mutex_unlock(&mutx); // Release the mutex
         sem_post(&empty);             // Signal that a slot is now available

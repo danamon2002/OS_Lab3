@@ -21,6 +21,7 @@
 typedef struct{
     int size;
     int id;
+    int* result;
 } BufferItem;
 
 // Data Structure
@@ -46,7 +47,7 @@ void initialize_memory();
 void *block_start(int index);
 void *block_max_end(int index);
 uintptr_t available_space(int index);
-int *first_fit(int size, int id);
+int first_fit(int size, int id);
 void free_block(int id);
 void free_memory();
 void *run_mms();
