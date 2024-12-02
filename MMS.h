@@ -10,9 +10,13 @@
 #include <semaphore.h>
 #include <signal.h>
 
-// Macros
+// Commonly modified macros:
+#define FIT_MODE 3 // 1 for First Fit, 2 for Best Fit, 3 for Worst Fit.
+#define DEFRAG_ENABLE 1 // 0 = no defrag, 1 = yes defrag.
+#define MAX_BLOCKS 5       // Maximum number of blocks in memory.
 #define MAX_SIZE (30 * 1024) // 30MB
-#define MAX_BLOCKS 10       // Maximum number of blocks in memory.
+
+// Other macros:
 #define BUFFER_SIZE 10
 #define MAX_JOBS 10   // Maximum number of jobs in buffer.
 #define BUFFER_SIZE 10

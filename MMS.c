@@ -8,7 +8,6 @@
 #include <signal.h>
 #include "MMS.h"
 
-//Single threaded memory manager test.
 //Dana Maloney
 
 void *start = NULL;
@@ -138,7 +137,7 @@ int first_fit(int size, int id){
 				printf("Block %d is taken.\n", i);
 			}
 		}
-		return NULL;
+		return 1;
 	} else {
 		printf("Requested %d bytes is not power of 2\n", size);
 		return -2; // return invalid request
@@ -146,7 +145,7 @@ int first_fit(int size, int id){
 }
 
 int best_fit(int size, int id) {
-    /* Best fit block placement function. */
+    /* Best fit block placement function. (Look for fit closest to requested size) */
 
     if (size > 0 && (size & (size - 1)) == 0) { // Check if chunk is a power of 2
         int best_index = -1;
@@ -193,7 +192,7 @@ int best_fit(int size, int id) {
 }
 
 int worst_fit(int size, int id) {
-    /* Worst fit block placement function. */
+    /* Worst fit block placement function. (Look for largest space possible) */
 
     if (size > 0 && (size & (size - 1)) == 0) { // Check if chunk is a power of 2
         int worst_index = -1;
@@ -238,6 +237,38 @@ int worst_fit(int size, int id) {
     }
 }
 
+void defragment_memory() {
+    /* Swap blocks around to prevent empty blocks between in-use blocks. */
+
+    int write_index = 0; // Index where the next in-use block will be moved.
+
+    // Iterate through the memoryTable to rearrange blocks.
+    for (int read_index = 0; read_index < MAX_BLOCKS; read_index++) {
+        if (memoryTable[read_index].in_use == 1) { // Found an in-use block
+            if (read_index != write_index) {
+                // Move the block to the current write_index
+                memoryTable[write_index] = memoryTable[read_index];
+
+                // Update block_start and block_end to reflect the new position
+                uintptr_t new_start = block_start(write_index);
+                uintptr_t size = memoryTable[write_index].block_end - memoryTable[write_index].block_start;
+                memoryTable[write_index].block_start = new_start;
+                memoryTable[write_index].block_end = new_start + size;
+
+                // Clear the old block
+                memoryTable[read_index].in_use = 0;
+                memoryTable[read_index].id = 0;
+                memoryTable[read_index].block_start = NULL;
+                memoryTable[read_index].block_end = NULL;
+            }
+
+            write_index++; // Move to the next available write position
+        }
+    }
+
+    printf("Memory defragmentation completed.\n");
+}
+
 void free_block(int id){
 	/* free up previously allocated block with matching id. */
 	for(int i = 0; i < MAX_BLOCKS; i++){
@@ -263,14 +294,28 @@ void *run_mms(){
 
 	while (1) { //FOREVER LOOP
         sem_wait(&full);             // Wait if there are no items in the buffer
-        pthread_mutex_lock(&mutx);  // Aget buffer access
+        pthread_mutex_lock(&mutx);  // Get buffer access
 
         BufferItem item = buffer[buff_index];     // Remove an item from the buffer
         printf("MMS taken from buffer: ID %d, Size %d\n", item.id, item.size);
 
-		//*item.result = first_fit(item.size, item.id); // send result back to producer.
-		*item.result = best_fit(item.size, item.id); // send result back to producer.
+        // Defrag
+        DEFRAG_ENABLE ? defragment_memory() : 1;
 
+        // Try to fit block.
+		switch(FIT_MODE){
+			case 1:
+				*item.result = first_fit(item.size, item.id); // send result back to producer.
+				break;
+			case 2:
+				*item.result = best_fit(item.size, item.id); // send result back to producer.
+				break;
+			case 3:
+				*item.result = worst_fit(item.size, item.id); // send result back to producer.
+				break;
+			default:
+				perror("FIT_MODE not set properly in MMS.h: Needs to be int 1, 2, or 3.\n");
+		}
 
         pthread_mutex_unlock(&mutx); // Release the mutex
         sem_post(&empty);             // Signal that a slot is now available

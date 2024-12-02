@@ -9,7 +9,6 @@
 #include<signal.h>
 #include "MMS.h"
 
-#define BUFFER_SIZE 10
 BufferItem buffer[BUFFER_SIZE]; // buffer for memory requests.
 int in = 0; // Index for the producer to insert items
 
